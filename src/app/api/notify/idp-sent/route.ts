@@ -49,15 +49,33 @@ export async function POST(request: Request) {
     }
 
     // Send multicast message
+    const title = 'রুম আইডি দেওয়া হয়েছে!';
+    const bodyMsg = 'আপনার ম্যাচের রুম আইডি এবং পাসওয়ার্ড দেওয়া হয়েছে। অ্যাপে গিয়ে চেক করুন।';
     const message = {
       notification: {
-        title: 'রুম আইডি দেওয়া হয়েছে!',
-        body: 'আপনার ম্যাচের রুম আইডি এবং পাসওয়ার্ড দেওয়া হয়েছে। অ্যাপে গিয়ে চেক করুন।',
+        title: title,
+        body: bodyMsg,
       },
       tokens: Array.from(new Set(tokens)), // Remove duplicates
     };
 
     const response = await messaging.sendEachForMulticast(message);
+    
+    // Save to Firestore
+    const batch = db.batch();
+    for (const uid of userIds) {
+      const notifRef = db.collection('notifications').doc();
+      batch.set(notifRef, {
+        userId: uid,
+        title: title,
+        message: bodyMsg,
+        isRead: false,
+        type: 'idp_sent',
+        tournamentId: tournamentId,
+        createdAt: new Date().toISOString()
+      });
+    }
+    await batch.commit();
     
     return NextResponse.json({
       success: true,

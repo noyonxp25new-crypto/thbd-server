@@ -50,16 +50,34 @@ export async function GET(request: Request) {
               }
 
               if (tokens.length > 0) {
+                const title = 'ম্যাচ রিমাইন্ডার!';
+                const bodyMsg = `আপনার ${tourData.title || 'টুর্নামেন্ট'} ম্যাচটি ৫ মিনিট পরে শুরু হবে। গেম ওপেন করে রেডি থাকুন।`;
                 const message = {
                   notification: {
-                    title: 'ম্যাচ রিমাইন্ডার!',
-                    body: `আপনার ${tourData.title || 'টুর্নামেন্ট'} ম্যাচটি ৫ মিনিট পরে শুরু হবে। গেম ওপেন করে রেডি থাকুন।`,
+                    title: title,
+                    body: bodyMsg,
                   },
                   tokens: Array.from(new Set(tokens)),
                 };
                 const response = await messaging.sendEachForMulticast(message);
                 totalMessagesSent += response.successCount;
                 notifiedTournaments++;
+
+                // Save to Firestore
+                const batch = db.batch();
+                for (const uid of userIds) {
+                  const notifRef = db.collection('notifications').doc();
+                  batch.set(notifRef, {
+                    userId: uid,
+                    title: title,
+                    message: bodyMsg,
+                    isRead: false,
+                    type: 'match_reminder',
+                    tournamentId: doc.id,
+                    createdAt: new Date().toISOString()
+                  });
+                }
+                await batch.commit();
               }
             }
           }
@@ -83,15 +101,33 @@ export async function GET(request: Request) {
           }
 
           if (tokens.length > 0) {
+            const title = 'রুম আইডি ও পাসওয়ার্ড দেওয়া হয়েছে!';
+            const bodyMsg = `আপনার ${tourData.title || 'টুর্নামেন্ট'} ম্যাচের রুম আইডি এবং পাসওয়ার্ড দেওয়া হয়েছে। অ্যাপে গিয়ে চেক করুন।`;
             const message = {
               notification: {
-                title: 'রুম আইডি ও পাসওয়ার্ড দেওয়া হয়েছে!',
-                body: `আপনার ${tourData.title || 'টুর্নামেন্ট'} ম্যাচের রুম আইডি এবং পাসওয়ার্ড দেওয়া হয়েছে। অ্যাপে গিয়ে চেক করুন।`,
+                title: title,
+                body: bodyMsg,
               },
               tokens: Array.from(new Set(tokens)),
             };
             const response = await messaging.sendEachForMulticast(message);
             totalMessagesSent += response.successCount;
+
+            // Save to Firestore
+            const batch = db.batch();
+            for (const uid of userIds) {
+              const notifRef = db.collection('notifications').doc();
+              batch.set(notifRef, {
+                userId: uid,
+                title: title,
+                message: bodyMsg,
+                isRead: false,
+                type: 'idp_sent',
+                tournamentId: doc.id,
+                createdAt: new Date().toISOString()
+              });
+            }
+            await batch.commit();
           }
         }
         
