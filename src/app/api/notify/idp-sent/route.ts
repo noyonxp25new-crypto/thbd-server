@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     const tourData = tourDoc.data();
-    const joinedPlayers: Record<string, string[]> = tourData?.joinedPlayers || {};
+    const joinedPlayers: Record<string, string[]> = tourData?.joined_players || {};
 
     // Collect all unique user IDs
     const userIds = Object.keys(joinedPlayers);
