@@ -44,23 +44,25 @@ export async function POST(request: Request) {
       }
     }
 
-    if (tokens.length === 0) {
-      return NextResponse.json({ message: 'No valid FCM tokens found' });
-    }
-
-    // Send multicast message
+    // Send multicast message if tokens exist
     const title = 'রুম আইডি দেওয়া হয়েছে!';
     const bodyMsg = 'আপনার ম্যাচের রুম আইডি এবং পাসওয়ার্ড দেওয়া হয়েছে। অ্যাপে গিয়ে চেক করুন।';
-    const message = {
-      notification: {
-        title: title,
-        body: bodyMsg,
-      },
-      tokens: Array.from(new Set(tokens)), // Remove duplicates
-    };
+    let successCount = 0;
+    let failureCount = 0;
 
-    const response = await messaging.sendEachForMulticast(message);
-    
+    if (tokens.length > 0) {
+      const message = {
+        notification: {
+          title: title,
+          body: bodyMsg,
+        },
+        tokens: Array.from(new Set(tokens)), // Remove duplicates
+      };
+      const response = await messaging.sendEachForMulticast(message);
+      successCount = response.successCount;
+      failureCount = response.failureCount;
+    }
+
     // Save to Firestore
     const batch = db.batch();
     for (const uid of userIds) {
@@ -79,8 +81,8 @@ export async function POST(request: Request) {
     
     return NextResponse.json({
       success: true,
-      successCount: response.successCount,
-      failureCount: response.failureCount
+      successCount: successCount,
+      failureCount: failureCount
     });
 
   } catch (error: any) {
