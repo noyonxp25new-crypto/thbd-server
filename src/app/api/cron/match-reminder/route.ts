@@ -21,68 +21,7 @@ export async function GET(request: Request) {
       const tourData = doc.data();
       
       // --- 1. Match Reminder Logic ---
-      if (tourData.matchDate) {
-        let matchDateObj: Date;
-        if (tourData.matchDate.toDate) {
-          matchDateObj = tourData.matchDate.toDate();
-        } else {
-          matchDateObj = new Date(tourData.matchDate);
-        }
-        
-        if (!isNaN(matchDateObj.getTime())) {
-          const diffMs = matchDateObj.getTime() - now.getTime();
-          const diffMins = Math.round(diffMs / 60000);
-
-          // If exactly 5 minutes away
-          if (diffMins === 5) {
-            const joinedPlayers: Record<string, string[]> = tourData.joinedPlayers || {};
-            const userIds = Object.keys(joinedPlayers);
-            
-            if (userIds.length > 0) {
-              const tokens: string[] = [];
-              for (const uid of userIds) {
-                const userDoc = await db.collection('users').doc(uid).get();
-                if (userDoc.exists) {
-                  const userData = userDoc.data();
-                  const fcmTokens = userData?.fcmTokens || [];
-                  tokens.push(...fcmTokens);
-                }
-              }
-
-              if (tokens.length > 0) {
-                const title = 'ম্যাচ রিমাইন্ডার!';
-                const bodyMsg = `আপনার ${tourData.title || 'টুর্নামেন্ট'} ম্যাচটি ৫ মিনিট পরে শুরু হবে। গেম ওপেন করে রেডি থাকুন।`;
-                const message = {
-                  notification: {
-                    title: title,
-                    body: bodyMsg,
-                  },
-                  tokens: Array.from(new Set(tokens)),
-                };
-                const response = await messaging.sendEachForMulticast(message);
-                totalMessagesSent += response.successCount;
-                notifiedTournaments++;
-
-                // Save to Firestore
-                const batch = db.batch();
-                for (const uid of userIds) {
-                  const notifRef = db.collection('notifications').doc();
-                  batch.set(notifRef, {
-                    userId: uid,
-                    title: title,
-                    message: bodyMsg,
-                    isRead: false,
-                    type: 'match_reminder',
-                    tournamentId: doc.id,
-                    createdAt: new Date().toISOString()
-                  });
-                }
-                await batch.commit();
-              }
-            }
-          }
-        }
-      }
+      // Removed as per user request
 
       // --- 2. ID/Pass Notification Logic ---
       if (tourData.idp_status?.toLowerCase() === 'sent' && tourData.idpNotified !== true) {
